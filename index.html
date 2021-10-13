@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    
+
+    <img src="pngs/single0.png" id="data" width=600px/>
+
+    <div class="controls">
+        <div>
+            <input type="range" min="1" max="307" value="1" class="slider" id="z-slider">
+            <label id="z-label" for="z-slider">slice: 1</label>
+        </div>
+        <div>
+            <input type="range" min="1" max="18" value="1" class="slider" id="t-slider">
+            <label id="t-label" for="t-slider">frame: 1</label>
+        </div> 
+
+    </div>
+    <table id="data-table" style="width:600px">
+            <tr>
+                <th>x (microns)</th>
+                <th>y (microns)</th>
+                <th>slice</th>
+                <th>frame</th>
+            </tr>
+    </table>
+
+    <script>
+
+        const pixelWidth = .7920002;
+
+        const imageOriginalSize = 256;
+        const imageDisplaySize = 600;
+
+        const hyperstackPosition = {
+            z: 1,
+            t: 1
+        };
+        const tSlider = document.getElementById("t-slider");
+        const zSlider = document.getElementById("z-slider");
+        const tLabel = document.getElementById("t-label");
+        const zLabel = document.getElementById("z-label");
+        const image = document.getElementById("data");
+        const dataTable = document.getElementById("data-table");
+
+        const data = [];
+
+        function updateImg(){
+            const imgNum = (hyperstackPosition.t - 1)*307 + hyperstackPosition.z - 1;
+            image.src = `pngs/single${imgNum}.png`;
+        }
+
+        tSlider.addEventListener('change', (e) => {
+            const t = e.target.value
+            hyperstackPosition.t = Number(t);
+            tLabel.innerHTML = "frame: " + t;
+            updateImg();
+        });
+        zSlider.addEventListener('change', (e) => {
+            const z = e.target.value;
+            hyperstackPosition.z = Number(z);
+            zLabel.innerHTML = "slice: " + z;
+            updateImg();
+
+        });
+
+        
+
+        function transformClickEventToCoordinate(e){
+            // x and y we get from the click event are relative to the screen
+            // but we want position within the image
+            // get the position of the image here to account for that offset
+            const imagePos = getPosition(image);
+            const pixelX = e.clientX - imagePos.x;
+            const pixelY = e.clientY - imagePos.y;
+            // calculate ratio transform pixel location in the displayed image 
+            // to pixel location in the original image
+            const imageRatio = imageOriginalSize / imageDisplaySize;
+            // now transform pixel location into microns
+            return {
+                x: pixelX*pixelWidth*imageRatio,
+                y: pixelY*pixelWidth*imageRatio,
+            }
+
+        }
+
+        image.addEventListener('click', (e) => {
+            const { x, y } = transformClickEventToCoordinate(e);
+            const { z , t } = hyperstackPosition;
+            data.push(
+                {x, y, z, t}
+            );
+            const tableValues = [x, y, z, t];
+            const tr = dataTable.insertRow(-1);
+            for (let i = 0; i < tableValues.length; i++){
+                const newCell = tr.insertCell(i);
+                newCell.innerHTML = tableValues[i]
+            }
+        })
+
+        // copied from https://www.kirupa.com/html5/get_element_position_using_javascript.htm
+        function getPosition(el) {
+            let xPosition = 0;
+            let yPosition = 0;
+            
+            while (el) {
+                if (el.tagName == "BODY") {
+                // deal with browser quirks with body/window/document and page scroll
+                const xScrollPos = el.scrollLeft || document.documentElement.scrollLeft;
+                const yScrollPos = el.scrollTop || document.documentElement.scrollTop;
+            
+                xPosition += (el.offsetLeft - xScrollPos + el.clientLeft);
+                yPosition += (el.offsetTop - yScrollPos + el.clientTop);
+                } else {
+                xPosition += (el.offsetLeft - el.scrollLeft + el.clientLeft);
+                yPosition += (el.offsetTop - el.scrollTop + el.clientTop);
+                }
+            
+                el = el.offsetParent;
+            }
+            return {
+                x: xPosition,
+                y: yPosition
+            };
+        }
+    </script>
+</body>
+</html>
